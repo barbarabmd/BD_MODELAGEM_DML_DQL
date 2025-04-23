@@ -1,0 +1,124 @@
+DROP DATABASE IF EXISTS BibliotecaDB;
+-- código disponibilizado no documento da atividade:
+
+-- Criação do Banco de Dados
+CREATE DATABASE BibliotecaDB;
+USE BibliotecaDB;
+
+-- Tabela Autores
+CREATE TABLE Autores (
+    id_autor INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL,
+    sobrenome VARCHAR(50) NOT NULL,
+    nacionalidade VARCHAR(30)
+);
+
+-- Tabela Categorias
+CREATE TABLE Categorias (
+    id_categoria INT AUTO_INCREMENT PRIMARY KEY,
+    descricao VARCHAR(50) NOT NULL
+);
+
+-- Tabela Livros
+CREATE TABLE Livros (
+    id_livro INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(100) NOT NULL,
+    ano_publicacao YEAR,
+    id_autor INT,
+    id_categoria INT,
+    CONSTRAINT fk_livro_autor FOREIGN KEY (id_autor) REFERENCES Autores(id_autor),
+    CONSTRAINT fk_livro_categoria FOREIGN KEY (id_categoria) REFERENCES Categorias(id_categoria)
+);
+
+-- aplicação DML:
+
+USE BibliotecaDB;
+
+-- inserção com INSERT
+-- inserir autores
+INSERT INTO Autores (nome, sobrenome, nacionalidade) VALUES
+('João', 'Silva', 'Brasileiro'),
+('Maria', 'Oliveira', 'Portuguesa'),
+('Carlos', 'Santos', 'Brasileiro'),
+('Ana', 'Pereira', 'Espanhola'),
+('Pedro', 'Gomes', 'Argentino');
+
+-- visualizar autores
+SELECT * FROM Autores;
+
+-- inserir categorias
+INSERT INTO Categorias (descricao) VALUES
+('Ficção'),
+('Não-Ficção'),
+('História'),
+('Ciência');
+
+-- visualizar categorias
+SELECT * FROM Categorias;
+
+-- inserir livros
+INSERT INTO Livros (titulo, ano_publicacao, id_autor, id_categoria) VALUES
+('O Mistério do Lago', 2015, 1, 1),
+('História do Brasil', 2018, 3, 3),
+('A Ciência da Vida', 2020, 5, 4),
+('Contos de Fadas', 2012, 2, 1),
+('Memórias de um Viajante', 2019, 4, 2),
+('A Revolução Industrial', 2017, 3, 3);
+
+-- visualizar livros
+SELECT * FROM Livros;
+
+-- consultas com SELECT
+-- listar todos autores brasileiros
+SELECT nome, sobrenome FROM Autores
+WHERE nacionalidade = 'Brasileiro';
+
+-- listar livros publicados após 2015
+SELECT titulo, ano_publicacao FROM Livros
+WHERE ano_publicacao > 2015;
+
+-- listar categorias com descrição começando com "C"
+SELECT * FROM Categorias
+WHERE descricao LIKE 'C%';
+
+-- contar número de livros por id_categoria
+SELECT id_categoria, COUNT(*) AS total_livros
+FROM Livros
+GROUP BY id_categoria;
+
+-- atualizações com UPDATE
+-- atualizar nacionalidade do autor
+UPDATE Autores
+SET nacionalidade = 'Portuguesa'
+WHERE id_autor = 4;
+
+-- atualizar ano de publicação do livro
+UPDATE Livros
+SET ano_publicacao = 2016
+WHERE id_livro = 1;
+
+-- atualizar descrição da categoria
+UPDATE Categorias
+SET descricao = 'Biografia'
+WHERE id_categoria = 2;
+
+-- exclusões com DELETE
+-- excluir livro
+DELETE FROM Livros
+WHERE id_livro = 6;
+
+-- excluir categoria
+DELETE FROM Categorias
+WHERE id_categoria = 1;
+
+-- excluir autor
+DELETE FROM Autores
+WHERE id_autor = 3;
+
+-- listar títulos de livros de categoria
+SELECT titulo FROM Livros
+WHERE id_categoria = 1;
+
+-- listar autores com nome com a letra "a"
+SELECT nome, sobrenome FROM Autores
+WHERE LOWER(nome) LIKE '%a%';
