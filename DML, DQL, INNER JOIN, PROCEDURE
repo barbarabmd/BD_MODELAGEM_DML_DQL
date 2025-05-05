@@ -1,1 +1,360 @@
+DROP DATABASE IF EXISTS db_venda_veiculo_join_procedure;
+CREATE DATABASE db_venda_veiculo_join_procedure;
+USE db_venda_veiculo_join_procedure;
+
+-- Tabela Funcionário
+CREATE TABLE Funcionario (
+id_funcionario INT PRIMARY KEY AUTO_INCREMENT,
+nome VARCHAR(100) NOT NULL,
+salario DECIMAL(10, 2) NOT NULL DEFAULT 0,
+departamento VARCHAR(50) NOT NULL
+);
+
+-- Tabela Veículo
+CREATE TABLE Veiculo (
+id_veiculo INT PRIMARY KEY AUTO_INCREMENT,
+marca VARCHAR(50) NOT NULL,
+placa VARCHAR(10) NOT NULL UNIQUE,
+modelo VARCHAR(50) NOT NULL,
+valor DECIMAL(10, 2) NOT NULL,
+ano_fabricacao INT NOT NULL CHECK (ano_fabricacao >= 1900),
+status ENUM('Disponível', 'Vendido') NOT NULL DEFAULT 'Disponível'
+);
+
+-- Tabela Cliente
+CREATE TABLE Cliente (
+id_cliente INT PRIMARY KEY AUTO_INCREMENT,
+nome VARCHAR(100) NOT NULL,
+cnh VARCHAR(20) NOT NULL UNIQUE,
+placa_veiculo VARCHAR(10),
+
+tipo_cliente ENUM('Física', 'Jurídica') NOT NULL,
+cartao_pagamento VARCHAR(50) NOT NULL
+);
+
+-- Tabela Venda
+CREATE TABLE Venda (
+id_venda INT PRIMARY KEY AUTO_INCREMENT,
+valor_venda DECIMAL(10, 2) NOT NULL,
+data_venda DATE NOT NULL,
+id_veiculo INT NOT NULL UNIQUE,
+
+id_funcionario INT NOT NULL,
+id_cliente INT NOT NULL,
+CONSTRAINT fk_veiculo_venda FOREIGN KEY (id_veiculo) REFERENCES Veiculo (id_veiculo) ON DELETE RESTRICT,
+CONSTRAINT fk_funcionario_venda FOREIGN KEY (id_funcionario) REFERENCES Funcionario (id_funcionario) ON DELETE RESTRICT,
+CONSTRAINT fk_cliente_venda FOREIGN KEY (id_cliente) REFERENCES Cliente (id_cliente) ON DELETE RESTRICT
+);
+
+-- Inserção de Dados
+
+-- Clientes
+INSERT INTO Cliente (nome, cnh, tipo_cliente, cartao_pagamento) VALUES
+('João Silva', '12345678901', 'Física', '4111111111111111'),
+('Empresa X', '123456789012345', 'Jurídica', '5222222222222222'),
+('Carlos', '98765432100', 'Física', '6333344444444444'),
+('Pedro', '98765432101', 'Física', '6333333333333335'),
+('Ricardo', '98765432102', 'Física', '6333333333333337'),
+('Swift CO', '543210987654321', 'Jurídica', '4111111111111432');
+
+-- Funcionários
+INSERT INTO Funcionario (nome, salario, departamento) VALUES
+('Carlos Souza', 2500.00, 'Vendas'),
+('Ana Costa', 3000.00, 'Administração'),
+('Pedro Lima', 2800.00, 'Vendas'),
+('William Roberto', 30000.00, 'RH'),
+('Paulo Castro', 5000.00, 'Estoque'),
+('Bárbara', 13000.00, 'Marketing');
+
+-- Veículos
+INSERT INTO Veiculo (marca, placa, valor, modelo, ano_fabricacao) VALUES
+('Ford', 'DEF1234', 65000, 'Fiesta', 2018),
+('Toyota', 'XCV3456', 137000, 'Corolla', 2020),
+('Chevrolet', 'LMO4321', 55000, 'Onix', 2019),
+('Wolkswagen', 'BMD1610', 150000, 'Fusca', 2025);
+
+-- Vendas
+INSERT INTO Venda (valor_venda, data_venda, id_veiculo, id_cliente, id_funcionario) VALUES
+(45000.00, '2024-01-15', 1, 1, 1),
+(75000.00, '2024-02-20', 2, 2, 2),
+(50000.00, '2024-03-10', 3, 3, 3),
+(120000.00, '2025-05-05', 4, 6, 6);
+
+
+-- Lista de todos os dados das tabelas Cliente, Funcionario, Veiculo e Venda
+SELECT * FROM Cliente;
+SELECT * FROM Funcionario;
+SELECT * FROM Veiculo;
+SELECT * FROM Venda;
+
+
+-- Atualizar o preço de um veículo
+UPDATE Veiculo SET valor = 60000 WHERE placa = 'DEF1234';
+
+-- Atualizar o status de um veículo após uma venda
+UPDATE Veiculo SET status = 'Vendido' WHERE id_veiculo = 3;
+UPDATE Veiculo SET status = 'Vendido' WHERE id_veiculo = 4;
+
+
+-- Consultas integradas com VIEWS para visualizacao
+-- Lista veiculos com ano de fabricacao > 2020
+CREATE VIEW Veiculos_Novos AS
+SELECT * FROM Veiculo
+WHERE ano_fabricacao > 2020; -- Pode modificar o filtro aqui
+
+-- Lista clientes comecando com letra C
+CREATE VIEW Cliente_C AS
+SELECT * FROM Cliente
+WHERE nome LIKE 'C%';
+
+-- Lista funcionario com nome Silva
+CREATE VIEW Cliente_Silva AS
+SELECT * FROM Cliente
+WHERE nome LIKE '%Silva%';
+
+-- Lista vendas realizadas apos 2024-03-01
+CREATE VIEW Vendas_Novas AS
+SELECT * FROM Venda
+WHERE data_venda > '2024-03-01';
+
+
+-- lista de veiculos vendidos e especificacoes com view
+CREATE VIEW veiculos_vendidos AS
+SELECT
+    v.marca, 
+    v.modelo, 
+    v.ano_fabricacao, 
+    v.placa,
+    ven.valor_venda, 
+    ven.data_venda,
+    c.nome AS nome_cliente,
+    f.nome AS nome_funcionario
+FROM Veiculo v
+INNER JOIN Venda ven ON v.id_veiculo = ven.id_veiculo
+INNER JOIN Cliente c ON ven.id_cliente = c.id_cliente
+INNER JOIN Funcionario f ON ven.id_funcionario = f.id_funcionario;
+
+-- vendas com nomes do cliente e funcionário com view
+CREATE VIEW todas_vendas AS
+SELECT 
+    ven.id_venda, 
+    ven.valor_venda, 
+    ven.data_venda,
+    c.nome AS cliente, 
+    f.nome AS funcionario
+FROM Venda ven
+INNER JOIN Cliente c ON ven.id_cliente = c.id_cliente
+INNER JOIN Funcionario f ON ven.id_funcionario = f.id_funcionario;
+
+-- nomes clientes e modelos dos veiculos comprados com view
+CREATE VIEW donos_veiculos AS
+SELECT 
+    c.nome AS cliente, 
+    v.modelo AS veiculo_comprado
+FROM Cliente c
+INNER JOIN Venda ven ON c.id_cliente = ven.id_cliente
+INNER JOIN Veiculo v ON ven.id_veiculo = v.id_veiculo;
+
+
+-- maior e menor valor de venda com view
+CREATE VIEW menor_maior_valor_venda AS
+SELECT MAX(valor_venda) AS maior_venda, MIN(valor_venda) AS menor_venda FROM Venda;
+
+-- veiculos vendidos por ano de fabricacao com view
+CREATE VIEW veiculos_vendidos_ano_fabricacao AS
+SELECT v.ano_fabricacao, COUNT(*) AS total_vendidos
+FROM Veiculo v
+INNER JOIN Venda ven ON v.id_veiculo = ven.id_veiculo
+GROUP BY v.ano_fabricacao;
+
+
+-- Valor médio de todas as vendas e view media vendas
+CREATE VIEW media_vendas AS
+SELECT
+ROUND(AVG(valor_venda), 2) AS media_valor_venda,
+COUNT(*) AS total_vendas
+FROM Venda;
+
+SELECT * FROM media_vendas;
+
+-- vendas por funcionário
+SELECT id_funcionario, COUNT(*) AS total_vendas 
+FROM Venda 
+GROUP BY id_funcionario;
+
+-- View media vendas por funcionario
+CREATE VIEW media_vendas_por_funcionario AS
+SELECT
+id_funcionario,
+ROUND(AVG(valor_venda), 2) AS media_valor_venda,
+COUNT(*) AS total_vendas
+FROM Venda
+GROUP BY id_funcionario;
+
+SELECT * FROM media_vendas_por_funcionario;
+
+-- View media vendas por funcionarioS
+CREATE VIEW media_vendas_por_funcionarios AS
+SELECT 
+    f.nome AS funcionario,
+    AVG(v.valor_venda) AS media_valor,
+    COUNT(*) AS total_vendas
+FROM Venda v
+JOIN Funcionario f ON v.id_funcionario = f.id_funcionario
+GROUP BY f.nome;
+
+-- View ordenada decrescente
+CREATE VIEW media_vendas_por_funcionarios_ordenada AS
+SELECT * FROM media_vendas_por_funcionarios
+ORDER BY media_valor DESC;
+
+-- View media vendas por funcionarios por periodo
+CREATE VIEW media_vendas_por_funcionarios_por_periodo AS
+SELECT 
+    f.nome AS funcionario,
+    AVG(v.valor_venda) AS media_valor,
+    COUNT(*) AS total_vendas
+FROM Venda v
+JOIN Funcionario f ON v.id_funcionario = f.id_funcionario
+WHERE v.data_venda >= '2024-01-01'
+GROUP BY f.nome;
+
+
+-- Procedure inserir 50 clientes aleatorios alternando tipo
+DELIMITER $$
+CREATE PROCEDURE inserir_clientes()
+BEGIN
+DECLARE i INT DEFAULT 1;
+WHILE i <= 50 DO
+INSERT INTO Cliente (nome, cnh, tipo_cliente, cartao_pagamento)
+VALUES (
+CONCAT('Cliente ', i),
+CONCAT('CNH', LPAD(i, 10, '0')),
+IF(i % 2 = 0, 'Física', 'Jurídica'),
+LPAD(FLOOR(RAND() * 10000000000000000), 16, '0') -- Gerando número aleatório de cartão
+);
+SET i = i + 1;
+END WHILE;
+END $$
+DELIMITER ;
+-- Chamar a procedure para inserir os clientes
+CALL inserir_clientes();
+
+
+-- Procedure inserir 10 vendas aleatorias
+-- Insercao de mais veiculos para a procedure mostrar ser efetivada
+INSERT INTO Veiculo (marca, placa, valor, modelo, ano_fabricacao) VALUES
+('Honda', 'AAA1111', 88000, 'Civic', 2021),
+('Renault', 'BBB2222', 43000, 'Sandero', 2017),
+('Hyundai', 'CCC3333', 95000, 'HB20', 2022),
+('Kia', 'DDD4444', 105000, 'Cerato', 2023),
+('Peugeot', 'EEE5555', 61000, '208', 2019),
+('Fiat', 'FFF6666', 72000, 'Argo', 2021);
+
+DELIMITER $$
+CREATE PROCEDURE inserir_vendas()
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE cliente_id INT;
+    DECLARE veiculo_id INT;
+    DECLARE funcionario_id INT;
+    DECLARE veiculos_restantes INT;
+
+    WHILE i <= 10 DO
+        -- Verifica se há veículos disponíveis (ainda não vendidos)
+        SELECT COUNT(*) INTO veiculos_restantes
+        FROM Veiculo
+        WHERE id_veiculo NOT IN (SELECT id_veiculo FROM Venda);
+
+        -- Se não houver mais veículos disponíveis, encerra o loop
+        IF veiculos_restantes = 0 THEN
+            SET i = 11; -- força saída do WHILE
+        ELSE
+            -- Seleciona um cliente aleatório
+            SELECT id_cliente INTO cliente_id
+            FROM Cliente
+            ORDER BY RAND()
+            LIMIT 1;
+
+            -- Seleciona um funcionário aleatório
+            SELECT id_funcionario INTO funcionario_id
+            FROM Funcionario
+            ORDER BY RAND()
+            LIMIT 1;
+
+            -- Seleciona um veículo disponível (ainda não vendido)
+            SELECT id_veiculo INTO veiculo_id
+            FROM Veiculo
+            WHERE id_veiculo NOT IN (SELECT id_veiculo FROM Venda)
+            ORDER BY RAND()
+            LIMIT 1;
+
+            -- Se encontrou um veículo, insere a venda
+            IF veiculo_id IS NOT NULL THEN
+                INSERT INTO Venda (valor_venda, data_venda, id_veiculo, id_funcionario, id_cliente)
+                VALUES (
+                    ROUND(30000 + (RAND() * 80000), 2),
+                    CURDATE() - INTERVAL FLOOR(RAND() * 365) DAY,
+                    veiculo_id,
+                    funcionario_id,
+                    cliente_id
+                );
+
+                -- Atualiza o status do veículo
+                UPDATE Veiculo SET status = 'Vendido' WHERE id_veiculo = veiculo_id;
+            END IF;
+
+            -- Avança para a próxima iteração
+            SET i = i + 1;
+        END IF;
+    END WHILE;
+END $$
+DELIMITER ;
+-- Chamar a procedure para inserir as vendas
+CALL inserir_vendas();
+
+
+-- Consulta de mês especifico com view
+CREATE VIEW venda_mes_atual AS
+SELECT 
+    c.nome AS cliente,
+    f.nome AS funcionario,
+    v.modelo AS veiculo,
+    ven.valor_venda,
+    ven.data_venda
+FROM Venda ven
+JOIN Cliente c ON ven.id_cliente = c.id_cliente
+JOIN Funcionario f ON ven.id_funcionario = f.id_funcionario
+JOIN Veiculo v ON ven.id_veiculo = v.id_veiculo
+WHERE MONTH(ven.data_venda) = MONTH(CURRENT_DATE()) 
+AND YEAR(ven.data_venda) = YEAR(CURRENT_DATE());
+
+-- Consulta de vendas realizadas após uma data específica com view
+SELECT
+Veiculo.marca, Veiculo.modelo, Veiculo.ano_fabricacao, Veiculo.placa,
+Venda.valor_venda, Venda.data_venda,
+Cliente.nome AS nome_cliente,
+Funcionario.nome AS nome_funcionario
+FROM Veiculo
+INNER JOIN Venda ON Veiculo.id_veiculo = Venda.id_veiculo
+INNER JOIN Cliente ON Venda.id_cliente = Cliente.id_cliente
+INNER JOIN Funcionario ON Venda.id_funcionario = Funcionario.id_funcionario
+WHERE Venda.data_venda > '2024-09-01';
+
+-- View ranking funcionarios por venda decrescente
+CREATE VIEW ranking_funcionarios_vendas AS
+SELECT 
+    f.nome AS funcionario,
+    COUNT(*) AS total_vendas
+FROM Venda v
+JOIN Funcionario f ON v.id_funcionario = f.id_funcionario
+GROUP BY f.nome
+ORDER BY total_vendas DESC;
+
+-- Consulta clientes jurídicos compra apos data especificada com view
+CREATE VIEW clientes_juridicos AS
+SELECT COUNT(DISTINCT c.id_cliente) AS total_clientes_juridicos
+FROM Cliente c
+JOIN Venda v ON c.id_cliente = v.id_cliente
+WHERE c.tipo_cliente = 'Jurídica' AND v.data_venda > '2024-01-01';
 
